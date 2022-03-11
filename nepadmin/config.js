@@ -9,6 +9,17 @@ layui.define(function(exports) {
     //记录nepadmin文件夹所在路径
     base: layui.cache.base,
     css: layui.cache.base + 'css/',
+    //使用 iframe 加载视图
+    iframe: {
+      enable: true,
+      exclude: [
+        '/home/dashboard',
+        '/icon/index',
+        '/exception/403',
+        '/exception/404',
+        '/exception/500',
+      ]
+    },
     //视图所在目录
     views: layui.cache.base + 'views/',
     //是否开启选项卡
@@ -24,7 +35,7 @@ layui.define(function(exports) {
     //网站名称
     name: 'nepadmin',
     //默认视图文件名
-    entry: '/index',
+    entry: '/home/dashboard',
     //视图文件后缀名
     engine: '.html',
     eventName: 'nepadmin-event',

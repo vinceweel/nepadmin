@@ -2,9 +2,10 @@ layui
   .extend({
     conf: 'config',
     api: 'lay/modules/api',
+    menu: 'lay/modules/menu',
     view: 'lay/modules/view'
   })
-  .define(['conf', 'view', 'api', 'jquery'], function(exports) {
+  .define(['conf', 'view', 'api', 'menu', 'jquery'], function(exports) {
     POPUP_DATA = {}
     var conf = layui.conf
     var view = layui.view
@@ -105,6 +106,8 @@ layui
       //判断登录页面
       if (conf.loginCheck == true) {
         if (self.getLoginToken()) {
+          //获取菜单
+          layui.menu.fetch()
           if (route.fileurl == conf.loginPage) {
             self.navigate('/')
             return
@@ -117,7 +120,20 @@ layui
         }
       }
 
-      if ($.inArray(route.fileurl, conf.indPage) === -1) {
+      var isIframe = function () { return window.self != window.top }
+      var isIndPage = function () { return $.inArray(route.fileurl, conf.indPage) !== -1 }
+
+      if (isIframe() || isIndPage()) {
+        //加载单页面
+        view.renderIndPage(route.fileurl, function() {
+          if (isIframe()) {
+            //如果是 iframe 模式，获取模板 title 传到父级窗口
+            window.parent.layui.view.tab.fix({ title: $('.layui-fluid[lay-title]').attr('lay-title') })
+          }
+          
+          if (conf.viewTabs == true) view.tab.clear()
+        })
+      } else {
         var loadRenderPage = function(params) {
           if (conf.viewTabs == true) {
             view.renderTabs(route)
@@ -138,11 +154,6 @@ layui
           //layout文件已加载，加载视图文件
           loadRenderPage()
         }
-      } else {
-        //加载单页面
-        view.renderIndPage(route.fileurl, function() {
-          if (conf.viewTabs == true) view.tab.clear()
-        })
       }
     }
     //根据当前加载的URL高亮左侧导航

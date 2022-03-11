@@ -115,18 +115,18 @@ layui
         return str.replace(new RegExp('(^' + symbol + '*)', 'g'), '')
       }
        */
-      self.loadHtml = function(url, callback) {
-        url = url || conf.entry
-        loadBar.start()
+      self.getUrl = function (path) {
+        var url = path || conf.entry
         var queryIndex = url.indexOf('?')
         if (queryIndex !== -1) url = url.slice(0, queryIndex)
+        var views = (url.indexOf(conf.base) === 0 ? '' : conf.views)
+        if (/\/$/.test(views) && /^\//.test(url)) url = url.slice(1)
+        return views + url + conf.engine + '?v=' + layui.cache.version
+      }
+      self.loadHtml = function(url, callback) {
+        loadBar.start()
         $.ajax({
-          url:
-            (url.indexOf(conf.base) === 0 ? '' : conf.views) +
-            url +
-            conf.engine +
-            '?v=' +
-            layui.cache.version,
+          url: self.getUrl(url),
           type: 'get',
           dataType: 'html',
           success: function(html) {
@@ -212,6 +212,13 @@ layui
           })
           return exists
         },
+        fix: function (data) {
+          var title = data.title
+          this.data[this.data.length - 1].title = title
+          $('.nepadmin-tabs-btn.nepadmin-tabs-active > i').after(data.title)
+          self.setTitle(title)
+          $('.nepadmin-tabs-item.iframe.active > iframe').attr('title', title)
+        },
         delAll: function(type) {
           var tab = this
           var menuBtnClas = tab.menu + ' .nepadmin-tabs-btn'
@@ -279,8 +286,10 @@ layui
           var changeView = function(lay) {
             $('#' + conf.containerBody + ' > .nepadmin-tabs-item' + lay)
               .show()
+              .addClass('active')
               .siblings()
               .hide()
+              .removeClass('active')
           }
 
           var lay = '[lay-url="' + fileurl + '"]'
@@ -291,6 +300,8 @@ layui
           if (existsTab) {
             var menu = $(this.menu)
             var currentMenu = menu.find(lay)
+
+            self.setTitle(existsTab.title)
 
             if (existsTab.href !== route.href) {
               tab.del(existsTab.fileurl, true)
@@ -317,26 +328,43 @@ layui
 
             layui.admin.navigate(route.href)
           } else {
-            self.loadHtml(fileurl, function(res) {
-              var htmlElem = $(
-                "<div><div class='nepadmin-tabs-item' lay-url='" +
-                  fileurl +
-                  "'>" +
-                  res.html +
-                  '</div></div>'
-              )
+            var _next = function (htmlElem) {
               var params = self.fillHtml(fileurl, htmlElem, 'prepend')
-              route.title = params.title
-              tab.data.push(route)
-              layui.admin.render(tab.tabMenuTplId)
+                route.title = params.title
+                tab.data.push(route)
+                layui.admin.render(tab.tabMenuTplId)
 
-              var currentMenu = $(tab.menu + ' ' + lay)
-              currentMenu.addClass(activeCls)
+                var currentMenu = $(tab.menu + ' ' + lay)
+                currentMenu.addClass(activeCls)
+                
+                changeView(lay)
+                
+                if ($.isFunction(callback)) callback(params)
+            }
 
-              changeView(lay)
+            var isExclude = function () { return $.inArray(route.fileurl, conf.iframe.exclude) !== -1 }
 
-              if ($.isFunction(callback)) callback(params)
-            })
+            if (conf.iframe.enable && !isExclude()) {
+              var htmlElem = $(
+                "<div><div class='nepadmin-tabs-item iframe' lay-url='" +
+                fileurl +
+                "'>" +
+                '<iframe class="view-iframe" src="#' + fileurl + '"></iframe>' +
+                '</div></div>'
+                )
+                _next(htmlElem)
+            } else {
+              self.loadHtml(fileurl, function(res) {
+                var htmlElem = $(
+                "<div><div class='nepadmin-tabs-item' lay-url='" +
+                fileurl +
+                "'>" +
+                res.html +
+                '</div></div>'
+                )
+                _next(htmlElem)
+              })
+            }
           }
 
           //layui.admin.sidebarFocus(route.href)

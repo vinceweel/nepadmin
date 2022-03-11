@@ -1,0 +1,9 @@
+.nepadmin-tabs-item.iframe {
+    height: inherit;
+}
+
+.view-iframe {
+    height: inherit;
+    width: 100%;
+    border: none;
+}
